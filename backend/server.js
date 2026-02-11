@@ -7,8 +7,10 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 
-// Load env vars
-dotenv.config();
+// Load env vars only in local development
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 // Connect to database
 connectDB();

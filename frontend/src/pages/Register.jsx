@@ -21,6 +21,14 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Client-side password validation: at least 8 chars, one uppercase, one number, one special char
+    const password = formData.password || '';
+    const pwdRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>\/?]).{8,}$/;
+    if (!pwdRegex.test(password)) {
+      setError('Password must be at least 8 characters and include one uppercase letter, one number, and one special character.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -105,6 +113,7 @@ const Register = () => {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            <p className="text-xs text-slate-400 mt-2">Password must be at least 8 characters and include one uppercase letter, one number, and one special character.</p>
           </div>
 
           <button

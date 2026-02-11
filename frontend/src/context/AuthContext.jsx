@@ -24,8 +24,21 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const { data } = await api.post('/auth/register', userData);
+    // Save initial user info
     localStorage.setItem('userInfo', JSON.stringify(data));
     setUser(data);
+
+    // Immediately mark walkthrough as seen for new users to avoid blocking tour
+    try {
+      await api.put('/auth/walkthrough');
+      const updated = { ...data, hasSeenWalkthrough: true };
+      localStorage.setItem('userInfo', JSON.stringify(updated));
+      setUser(updated);
+    } catch (err) {
+      // Non-fatal: if this fails, the tour will still appear and user can dismiss it manually
+      console.warn('Could not auto-complete walkthrough:', err?.response?.data || err.message || err);
+    }
+
     return data;
   };
 

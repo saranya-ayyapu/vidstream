@@ -14,6 +14,12 @@ const generateToken = (id) => {
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
 
+  // Server-side password validation: at least 8 chars, one uppercase, one number, one special char
+  const pwdRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>\/?]).{8,}$/;
+  if (!pwdRegex.test(password)) {
+    return res.status(400).json({ message: 'Password must be at least 8 characters and include one uppercase letter, one number, and one special character.' });
+  }
+
   try {
     const userExists = await User.findOne({ email });
 

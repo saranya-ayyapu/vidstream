@@ -47,9 +47,15 @@ io.on('connection', (socket) => {
   socket.join(GLOBAL_ORG_ID);
   console.log(`Client ${socket.id} joined global workspace room automatically`);
 
-  socket.on('join', () => {
-    socket.join(GLOBAL_ORG_ID);
-    console.log(`Client ${socket.id} explicitly joined global room`);
+  // Allow clients to request joining a specific room (e.g. user id)
+  socket.on('join', (roomId) => {
+    if (roomId) {
+      socket.join(roomId.toString());
+      console.log(`Client ${socket.id} explicitly joined room ${roomId}`);
+    } else {
+      socket.join(GLOBAL_ORG_ID);
+      console.log(`Client ${socket.id} explicitly joined global room`);
+    }
   });
 
   socket.on('disconnect', () => {

@@ -62,11 +62,14 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    if (!user) return;
+
     fetchVideos();
 
     const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000');
     
-    socket.emit('join');
+    // join user's room so server can emit per-user events
+    socket.emit('join', user._id);
 
     socket.on('video:new', (newVideo) => {
       setVideos(prev => [newVideo, ...prev]);

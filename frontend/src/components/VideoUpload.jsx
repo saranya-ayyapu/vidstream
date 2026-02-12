@@ -25,11 +25,14 @@ const VideoUpload = ({ onUploadComplete }) => {
         setTitle(savedTitle);
     }
 
+    if (!user) return; // wait for auth
+
     const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000');
     
     socket.on('connect', () => {
       console.log('Connected to socket server');
-      socket.emit('join');
+      // Join the per-user room so server can target this client
+      socket.emit('join', user._id);
     });
 
     socket.on('video:progress', (data) => {
@@ -68,7 +71,7 @@ const VideoUpload = ({ onUploadComplete }) => {
       console.log('Disconnecting socket');
       socket.disconnect();
     };
-  }, [onUploadComplete]);
+  }, [onUploadComplete, user]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];

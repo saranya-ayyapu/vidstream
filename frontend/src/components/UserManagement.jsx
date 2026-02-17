@@ -23,9 +23,8 @@ const UserManagement = () => {
     }
   };
 
-  const handleToggleRole = async (userId, currentRole) => {
+  const handleUpdateRole = async (userId, newRole) => {
     setUpdatingId(userId);
-    const newRole = currentRole === 'Viewer' ? 'Admin' : 'Viewer';
     try {
       await api.put(`/auth/users/${userId}/role`, { role: newRole });
       setUsers(users.map(u => u._id === userId ? { ...u, role: newRole } : u));
@@ -101,9 +100,11 @@ const UserManagement = () => {
                     <span className={`inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
                       user.role === 'Admin' 
                         ? 'bg-purple-50 text-purple-600 border-purple-100' 
+                        : user.role === 'Editor'
+                        ? 'bg-blue-50 text-blue-600 border-blue-100'
                         : 'bg-slate-50 text-slate-500 border-slate-100'
                     }`}>
-                      {user.role === 'Admin' ? <ShieldCheck className="w-3.5 h-3.5" /> : <Shield className="w-3.5 h-3.5" />}
+                      {user.role === 'Admin' ? <ShieldCheck className="w-3.5 h-3.5" /> : user.role === 'Editor' ? <Shield className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                       {user.role}
                     </span>
                   </td>
@@ -115,23 +116,16 @@ const UserManagement = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     {user.role !== 'Admin' ? (
-                      <button
-                        onClick={() => handleToggleRole(user._id, user.role)}
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleUpdateRole(user._id, e.target.value)}
                         disabled={updatingId === user._id}
-                        className={`text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all ${
-                          user.role === 'Viewer'
-                            ? 'bg-blue-600 text-white hover:bg-black shadow-xl shadow-blue-600/10'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                        className="bg-slate-50 border border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all cursor-pointer"
                       >
-                        {updatingId === user._id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : user.role === 'Viewer' ? (
-                          'Promote'
-                        ) : (
-                          'Demote'
-                        )}
-                      </button>
+                        <option value="Viewer">Viewer</option>
+                        <option value="Editor">Editor</option>
+                        <option value="Admin">Admin</option>
+                      </select>
                     ) : (
                       <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">Owner</span>
                     )}

@@ -14,9 +14,15 @@ const Dashboard = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [activeTab, setActiveTab] = useState('library');
+  const [activeTab, setActiveTab] = useState(localStorage.getItem('activeDashboardTab') || 'library');
+  
+  // Persist active tab on change
+  useEffect(() => {
+    localStorage.setItem('activeDashboardTab', activeTab);
+  }, [activeTab]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'largest', 'smallest'
   const [deletingId, setDeletingId] = useState(null);
   const [showTour, setShowTour] = useState(false);
   const [showContextualTour, setShowContextualTour] = useState(false);
@@ -66,7 +72,7 @@ const Dashboard = () => {
 
     fetchVideos();
 
-    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000');
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5006');
     
     // join user's room so server can emit per-user events
     socket.emit('join', user._id);
@@ -99,7 +105,21 @@ const Dashboard = () => {
     const matchesSearch = v.title.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === 'All' ? true : v.status === filter;
     return matchesSearch && matchesFilter;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+    if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+    if (sortBy === 'largest') return b.size - a.size;
+    if (sortBy === 'smallest') return a.size - b.size;
+    return 0;
   });
+
+  const formatDuration = (seconds) => {
+    if (!seconds) return '--:--';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return [h, m, s].map(v => v < 10 ? '0' + v : v).filter((v, i) => v !== '00' || i > 0).join(':');
+  };
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900">
@@ -301,22 +321,20 @@ const Dashboard = () => {
                       />
                     </div>
                     
-                    <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0" data-tour="filter-buttons">
-                      <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-                        {['All', 'Completed', 'Flagged', 'Processing'].map((f) => (
-                          <button 
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase tracking-wider ${
-                              filter === f ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-900'
-                            }`}
-                          >
-                            {f}
-                          </button>
-                        ))}
+                      <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm ml-auto">
+                        <select 
+                          value={sortBy} 
+                          onChange={(e) => setSortBy(e.target.value)}
+                          className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest px-4 py-2 outline-none cursor-pointer"
+                        >
+                          <option value="newest">Newest First</option>
+                          <option value="oldest">Oldest First</option>
+                          <option value="largest">Largest First</option>
+                          <option value="smallest">Smallest First</option>
+                        </select>
                       </div>
                     </div>
-                  </div>
+                  
 
                   {/* Video Grid */}
                   <div className="space-y-6">
@@ -360,6 +378,12 @@ const Dashboard = () => {
                                 <div className="absolute top-3 left-3 bg-blue-500 text-white p-1.5 rounded-lg shadow-lg flex items-center gap-1.5 backdrop-blur-sm bg-blue-500/90 border border-blue-400/20 animate-pulse">
                                   <Clock className="w-3.5 h-3.5" />
                                   <span className="text-[10px] font-bold uppercase tracking-wider">Processing</span>
+                                </div>
+                              )}
+
+                              {vid.duration && (
+                                <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-[10px] font-black backdrop-blur-sm">
+                                  {formatDuration(vid.duration)}
                                 </div>
                               )}
                             </div>

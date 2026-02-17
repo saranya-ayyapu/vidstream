@@ -12,7 +12,7 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, organizationName } = req.body;
 
   // Server-side password validation: at least 8 chars, one uppercase, one number, one special char
   const pwdRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>\/?]).{8,}$/;
@@ -27,19 +27,23 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Single-Org Logic: First user is Admin, others are Viewers
+    // Multi-tenant Org Logic
     const userCount = await User.countDocuments();
-    const role = userCount === 0 ? 'Admin' : 'Viewer';
+    let organization;
+    if (userCount === 0) {
+        organization = await Organization.create({ name: organizationName || "Main Workspace" });
+    } else {
+        organization = await Organization.findOne() || await Organization.create({ name: "Main Workspace" });
+    }
 
-    // Everyone belongs to the same global "Main Workspace" ID
-    const organizationId = '000000000000000000000001'; 
+    const role = userCount === 0 ? 'Admin' : 'Viewer';
 
     const user = await User.create({
       name,
       email,
       password,
       role,
-      organizationId,
+      organizationId: organization._id,
     });
 
     if (user) {
@@ -65,7 +69,7 @@ const registerUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
-
+  console.log(`Login attempt received for: ${email}`);
   try {
     const user = await User.findOne({ email });
 
@@ -75,7 +79,7 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        organizationId: '000000000000000000000001',
+        organizationId: user.organizationId,
         hasSeenWalkthrough: user.hasSeenWalkthrough,
         token: generateToken(user._id),
       });
@@ -99,7 +103,7 @@ const getUserProfile = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      organizationId: '000000000000000000000001',
+      organizationId: user.organizationId,
       hasSeenWalkthrough: user.hasSeenWalkthrough,
     });
   } else {

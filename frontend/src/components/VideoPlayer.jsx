@@ -11,7 +11,7 @@ const VideoPlayer = ({ video }) => {
 
   const userInfo = JSON.parse(localStorage.getItem('userInfo'));
   const token = userInfo?.token;
-  const streamingUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/videos/stream/${video._id}?token=${token}`;
+  const streamingUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5006/api'}/videos/stream/${video._id}?token=${token}`;
   
   const isRestricted = video.sensitivity === 'Flagged' && user.role === 'Viewer';
 
@@ -89,7 +89,7 @@ const VideoPlayer = ({ video }) => {
         <div>
           <h4 className="text-xl font-black text-slate-900 mb-1 tracking-tight">{video.title}</h4>
           <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">
-            {new Date(video.createdAt).toLocaleDateString(undefined, { dateStyle: 'full' })} • {(video.size / (1024 * 1024)).toFixed(2)} MB
+            {new Date(video.createdAt).toLocaleDateString(undefined, { dateStyle: 'full' })} • {(video.size / (1024 * 1024)).toFixed(2)} MB {video.duration ? `• ${Math.floor(video.duration / 60)}:${Math.floor(video.duration % 60).toString().padStart(2, '0')}` : ''}
           </p>
         </div>
         <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${

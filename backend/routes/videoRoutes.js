@@ -13,7 +13,7 @@ const router = express.Router();
 router.post(
   '/upload',
   protect,
-  authorize('Admin', 'Viewer'),
+  authorize('Admin', 'Editor'),
   upload.single('video'),
   uploadVideo
 );

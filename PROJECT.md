@@ -1,6 +1,6 @@
 # VidStream - Video Upload & Processing Platform
 
-## 📺 What Is This Project?
+## 📺 About Project
 
 **VidStream** is a web application that allows users to:
 - **Upload videos** from their computer

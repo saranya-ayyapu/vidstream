@@ -37,15 +37,10 @@ app.use(cors());
 app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
 
-const GLOBAL_ORG_ID = '000000000000000000000001';
 
 // Socket.io connection
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
-
-  // Auto-join global workspace room
-  socket.join(GLOBAL_ORG_ID);
-  console.log(`Client ${socket.id} joined global workspace room automatically`);
 
   // Allow clients to request joining a specific room (e.g. user id)
   socket.on('join', (roomId) => {
@@ -53,8 +48,7 @@ io.on('connection', (socket) => {
       socket.join(roomId.toString());
       console.log(`Client ${socket.id} explicitly joined room ${roomId}`);
     } else {
-      socket.join(GLOBAL_ORG_ID);
-      console.log(`Client ${socket.id} explicitly joined global room`);
+      console.log(`Client ${socket.id} attempted to join empty room - ignored`);
     }
   });
 
@@ -67,8 +61,18 @@ app.get('/', (req, res) => {
   res.send('Video App API is running...');
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5006;
 
 server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+});
+
+// Global error handlers to prevent silent crashes
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
 });

@@ -99,6 +99,19 @@ const processVideo = async (videoId, io) => {
     // Simple random logic for classification
     const isSafe = Math.random() > 0.2; // 80% chance for Safe
     video.sensitivity = isSafe ? 'Safe' : 'Flagged';
+    // 4. Metadata Extraction (Duration)
+    try {
+        const metadata = await new Promise((resolve, reject) => {
+            ffmpeg.ffprobe(inputPath, (err, data) => {
+                if (err) reject(err);
+                else resolve(data);
+            });
+        });
+        video.duration = metadata.format.duration;
+    } catch (err) {
+        console.log('ffprobe failed to extract duration, skipping...');
+    }
+
     video.status = isSafe ? 'Completed' : 'Flagged';
     
     // Update path to optimized version if it exists

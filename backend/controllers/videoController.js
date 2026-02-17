@@ -1,4 +1,5 @@
 const multer = require('multer');
+const fs = require('fs');
 
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
@@ -6,7 +7,6 @@ const cloudinary = require("../config/cloudinary");
 const Video = require('../models/Video');
 const { processVideo } = require('../services/processingService');
 
-const GLOBAL_ORG_ID = '000000000000000000000001';
 
 const storage = new CloudinaryStorage({
   cloudinary,
@@ -49,7 +49,7 @@ const uploadVideo = async (req, res) => {
       path: req.file.path,
       size: req.file.size,
       mimeType: req.file.mimetype,
-      organizationId: GLOBAL_ORG_ID,
+      organizationId: req.user.organizationId,
       uploaderId: req.user._id,
       status: 'Processing',
     });
@@ -100,11 +100,61 @@ const streamVideo = async (req, res) => {
       return res.status(404).json({ message: "Video not found" });
     }
 
-    if (video.uploaderId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
+    // Authorization: User must be in the same Org
+    if (video.organizationId.toString() !== req.user.organizationId.toString()) {
+      return res.status(403).json({ message: "Not authorized to access this organization's content" });
     }
 
-    return res.redirect(video.path);
+    // Role-based restriction for Flagged content
+    if (video.sensitivity === 'Flagged' && req.user.role === 'Viewer') {
+      return res.status(403).json({ message: "Access restricted for sensitive content" });
+    }
+
+    const videoPath = video.path;
+
+    // Check if it's a Cloudinary URL or local path
+    if (videoPath.startsWith('http')) {
+        return res.redirect(videoPath);
+    }
+
+    // Handle Local File Streaming with Range Support
+    if (!fs.existsSync(videoPath)) {
+        return res.status(404).json({ message: "Video file not found on server" });
+    }
+
+    const stat = fs.statSync(videoPath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize) {
+        res.status(416).send('Requested range not satisfiable\n' + start + ' >= ' + fileSize);
+        return;
+      }
+
+      const chunksize = (end - start) + 1;
+      const file = fs.createReadStream(videoPath, { start, end });
+      const head = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': video.mimeType || 'video/mp4',
+      };
+
+      res.writeHead(206, head);
+      file.pipe(res);
+    } else {
+      const head = {
+        'Content-Length': fileSize,
+        'Content-Type': video.mimeType || 'video/mp4',
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(videoPath).pipe(res);
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
